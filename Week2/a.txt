@@ -1,0 +1,2 @@
+John Doe|Engineer|1978
+Mary Wang|Accountant|2011
