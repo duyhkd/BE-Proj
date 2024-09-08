@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 func main() {
 	http.HandleFunc("/", getRoot)
 	http.HandleFunc("/hello", getHello)
+	http.HandleFunc("/signup", signUp)
 
 	err := http.ListenAndServe(":3333", nil)
 	log.Printf("starting server on port 3333")
@@ -23,19 +25,9 @@ func main() {
 	}
 }
 
-type application struct {
-	auth struct {
-		username string
-		password string
-	}
-}
-
-func (app *application) protectedHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "This is the protected handler")
-}
-
-func (app *application) unprotectedHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "This is the unprotected handler")
+type User struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
 }
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
@@ -48,8 +40,34 @@ func getHello(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Hello, HTTP!\n")
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
-	// Basic Auth
-	os.Setenv("AUTH_USERNAME", r.Header.Get("userName"))
-	os.Setenv("AUTH_PASSWORD", r.Header.Get("password"))
+func signUp(w http.ResponseWriter, r *http.Request) {
+	var newUser User
+	body, _ := io.ReadAll(r.Body)
+	err := json.NewDecoder(r.Body).Decode(&newUser)
+	if err != nil {
+		fmt.Printf("User %s\n", body)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	users := make(map[string]User)
+	fileContent, err := os.ReadFile("users.json")
+	if err != nil {
+		os.Create("users.json")
+	}
+	json.Unmarshal(fileContent, &users)
+
+	_, ok := users[newUser.UserName]
+
+	if !ok {
+		user := User{UserName: newUser.UserName, Password: newUser.Password}
+		users[newUser.UserName] = user
+		jsonString, _ := json.Marshal(users)
+		os.WriteFile("users.json", jsonString, os.ModePerm)
+	} else {
+		resp := make(map[string]string)
+		resp["message"] = "User already signed up"
+		jsonResp, _ := json.Marshal(resp)
+		w.Write(jsonResp)
+	}
 }
