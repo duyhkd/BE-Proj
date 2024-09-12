@@ -20,7 +20,7 @@ type Employee struct {
 	EmployeeName string `json:"employee_name"`
 	Salary       int    `json:"employee_salary"`
 	Age          int    `json:"employee_age"`
-	ProfileImage string `json:"profile_image, omitempty"`
+	ProfileImage string `json:"profile_image"`
 }
 
 type Response struct {
