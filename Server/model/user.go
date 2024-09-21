@@ -1,15 +1,19 @@
 package model
 
 import (
+	"Server/db"
 	"encoding/json"
+	"errors"
 	"os"
+
+	"gorm.io/gorm"
 )
 
 const userStoragePath = "storage/user"
 const usersFilePath = userStoragePath + "/users.json"
 
 type User struct {
-	UserName     string `json:"username"`
+	UserName     string `json:"username" gorm:"uniqueindex"`
 	Password     string `json:"password"`
 	DisplayName  string `json:"displayname"`
 	ProfilePhoto string `json:"profilephoto"`
@@ -31,6 +35,8 @@ func (user User) AsCleanedUser() CleanedUser {
 }
 
 func (user User) UpdateDetails(cleaneduser CleanedUser) CleanedUser {
+	
+
 	if cleaneduser.DisplayName != "" {
 		user.DisplayName = cleaneduser.DisplayName
 	}
@@ -57,15 +63,19 @@ func GetUsers() map[string]User {
 	return users
 }
 
-func AddUser(newUser User) {
-	users := GetUsers()
-	users[newUser.UserName] = newUser
-	jsonString, _ := json.Marshal(users)
-	err := os.MkdirAll(userStoragePath, os.ModePerm)
-	if err != nil {
-		os.Create(usersFilePath)
+func AddUser(newUser User) error {
+	var existingUser User
+	result := db.DB.Where("username = ?", newUser.UserName).First(&existingUser)
+
+	if result.Error == nil {
+		// User already exists
+		return errors.New("user with this email already exists")
+	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		// Other db error
+		return result.Error
 	}
-	os.WriteFile(usersFilePath, jsonString, os.ModePerm)
+
+	return db.DB.Create(newUser).Error
 }
 
 func GetUser(username string) (User, bool) {

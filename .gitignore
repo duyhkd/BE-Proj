@@ -3,3 +3,4 @@ settings.json
 node_moduldes/*
 */storage/*
 *debug*
+config.*.json

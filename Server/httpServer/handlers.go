@@ -36,12 +36,10 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		Password: password,
 	}
 
-	users := model.GetUsers()
-	_, ok := users[username]
+	ok := model.AddUser(newUser)
 
 	// Existing user not found
-	if !ok {
-		model.AddUser(newUser)
+	if ok != nil {
 		Ok(w, fmt.Sprintf("Success fully signed up user: %s", newUser.UserName))
 	} else {
 		BadRequest(w, "User already signed up!")
