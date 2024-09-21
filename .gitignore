@@ -1,6 +1,5 @@
 .vscode/*
 settings.json
-*.mod
 node_moduldes/*
 */storage/*
 *debug*
