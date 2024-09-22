@@ -2,6 +2,7 @@ package httpServer
 
 import (
 	"Server/model"
+	"Server/service"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,7 +37,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		Password: password,
 	}
 
-	ok := model.AddUser(newUser)
+	ok := service.AddUser(newUser)
 
 	// Existing user not found
 	if ok != nil {
@@ -53,10 +54,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	username := r.FormValue("username")
 	password := r.FormValue("password")
-	user, ok := model.GetUser(username)
+	user, err := service.GetUser(username)
 
 	// Existing user not found
-	if !ok || user.Password != password {
+	if err != nil || user.Password != password {
 		BadRequest(w, "Credentials doesn't match or user not exist")
 	} else {
 		Ok(w, "Success fully logged in!")
@@ -69,13 +70,13 @@ func GetUserDetails(w http.ResponseWriter, r *http.Request) {
 		MethodNotAllowed(w)
 	}
 	username := r.URL.Query().Get("username")
-	user, ok := model.GetUser(username)
+	user, err := service.GetUser(username)
 
 	// Existing user not found
-	if !ok {
+	if err != nil {
 		BadRequest(w, "User does not exist")
 	} else {
-		cleanedUser := user.AsCleanedUser()
+		cleanedUser := service.AsCleanedUser(user)
 		jsonString, _ := json.Marshal(cleanedUser)
 		Ok(w, string(jsonString))
 	}
@@ -88,16 +89,16 @@ func UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.URL.Query().Get("username")
-	user, ok := model.GetUser(username)
 
 	var updatedUser model.CleanedUser
 	json.NewDecoder(r.Body).Decode(&updatedUser)
 
+	cleanedUser, err := service.UpdateDetails(username, updatedUser)
+
 	// Existing user not found
-	if !ok {
-		BadRequest(w, "User does not exist")
+	if err != nil {
+		BadRequest(w, err.Error())
 	} else {
-		cleanedUser := user.UpdateDetails(updatedUser)
 		jsonString, _ := json.Marshal(cleanedUser)
 		Ok(w, string(jsonString))
 	}
@@ -146,14 +147,14 @@ func UpdateUserProfilePhoto(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.URL.Query().Get("username")
-	user, ok := model.GetUser(username)
+
+	cleanedUser := model.CleanedUser{ProfilePhoto: filePath}
+	cleanedUser, err = service.UpdateDetails(username, cleanedUser)
 
 	// Existing user not found
-	if !ok {
-		BadRequest(w, "User does not exist")
+	if err != nil {
+		BadRequest(w, err.Error())
 	} else {
-		cleanedUser := model.CleanedUser{ProfilePhoto: filePath}
-		cleanedUser = user.UpdateDetails(cleanedUser)
 		jsonString, _ := json.Marshal(cleanedUser)
 		Ok(w, string(jsonString))
 	}
