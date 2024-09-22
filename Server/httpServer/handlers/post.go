@@ -108,7 +108,7 @@ func MakeComment(w http.ResponseWriter, r *http.Request) {
 		httpServer.MethodNotAllowed(w)
 	}
 
-	username := r.URL.Query().Get("username")
+	username := r.Context().Value("username").(string)
 	postId, err := uuid.Parse(r.URL.Query().Get("post"))
 	if err != nil {
 		httpServer.BadRequest(w, err.Error())
@@ -132,4 +132,48 @@ func MakeComment(w http.ResponseWriter, r *http.Request) {
 	} else {
 		httpServer.Ok(w, "Commented!")
 	}
+}
+
+func LikePost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		httpServer.MethodNotAllowed(w)
+		return
+	}
+
+	username := r.Context().Value("username").(string)
+	postId, err := uuid.Parse(r.URL.Query().Get("post"))
+	if err != nil {
+		httpServer.BadRequest(w, err.Error())
+		return
+	}
+
+	var post model.Post
+	result := db.DB.First(&post, "id = ?", postId)
+	if result.Error != nil {
+		httpServer.NotFound(w, "Post doesn't exist")
+		return
+	}
+
+	var like model.Like
+	result = db.DB.Where("post_id = ?", postId).Where("user_name = ?", username).First(&like)
+
+	if result.RowsAffected > 0 {
+		if err = db.DB.Where("post_id = ?", postId).Where("user_name = ?", username).Delete(&like).Error; err != nil {
+			httpServer.BadRequest(w, "Failed to unlike post")
+			return
+		}
+		httpServer.Ok(w, "Unliked Post!")
+		return
+	} else {
+		if err = db.DB.Create(&model.Like{
+			PostId:   postId,
+			UserName: username,
+		}).Error; err != nil {
+			httpServer.BadRequest(w, "Failed to like post")
+			return
+		}
+		httpServer.Ok(w, "Liked Post!")
+		return
+	}
+
 }

@@ -5,12 +5,11 @@ import (
 )
 
 type Post struct {
-	Id        uuid.UUID       `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
-	UserName  string          `json:"username"`
-	Text      string          `json:"text"`
-	Comments  []Comment       `json:"comments"`
-	Likes     map[string]bool `json:"likes"`
-	LikeCount int             `json:"total_likes" gorm:"default:0"`
+	Id       uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
+	UserName string    `json:"username"`
+	Text     string    `json:"text"`
+	Comments []Comment `json:"comments" gorm:"foreignKey:PostId"`
+	Likes    []Like    `json:"likes" gorm:"foreignKey:PostId"`
 }
 
 type Comment struct {
@@ -18,4 +17,9 @@ type Comment struct {
 	PostId   uuid.UUID `json:"postId" gorm:"type:uuid"`
 	UserName string    `json:"username"`
 	Text     string    `json:"text"`
+}
+
+type Like struct {
+	UserName string    `json:"username"`
+	PostId   uuid.UUID `json:"postId" gorm:"type:uuid"`
 }

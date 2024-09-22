@@ -23,6 +23,7 @@ func Init(connectionString string) {
 		&model.User{},
 		&model.Post{},
 		&model.Comment{},
+		&model.Like{},
 	)
 	if err != nil {
 		log.Fatal("failed to migrate database: ", err)

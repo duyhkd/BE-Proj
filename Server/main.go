@@ -34,6 +34,7 @@ func main() {
 	mux.Handle("/comment", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.MakeComment)))
 	mux.Handle("/post/remove", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.RemovePost)))
 	mux.Handle("/post/update", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.EditPost)))
+	mux.Handle("/post/like", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.LikePost)))
 
 	err = http.ListenAndServe(":3333", mux)
 	log.Printf("starting server on port 3333")
