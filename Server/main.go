@@ -3,6 +3,7 @@ package main
 import (
 	"Server/db"
 	"Server/httpServer"
+	"Server/httpServer/handlers"
 	"Server/middleware"
 	"Server/model"
 	"errors"
@@ -29,6 +30,10 @@ func main() {
 	mux.Handle("/users", middleware.TokenVerificationMiddleware(http.HandlerFunc(httpServer.GetUserDetails)))
 	mux.Handle("/user/updatedetails", middleware.TokenVerificationMiddleware(http.HandlerFunc(httpServer.UpdateUserDetails)))
 	mux.Handle("/user/updatephoto", middleware.TokenVerificationMiddleware(http.HandlerFunc(httpServer.UpdateUserProfilePhoto)))
+	mux.Handle("/post", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.MakePost)))
+	mux.Handle("/comment", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.MakeComment)))
+	mux.Handle("/post/remove", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.RemovePost)))
+	mux.Handle("/post/update", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.EditPost)))
 
 	err = http.ListenAndServe(":3333", mux)
 	log.Printf("starting server on port 3333")

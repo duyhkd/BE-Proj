@@ -21,6 +21,8 @@ func Init(connectionString string) {
 	// Migrate to create table if not exist
 	err = DB.AutoMigrate(
 		&model.User{},
+		&model.Post{},
+		&model.Comment{},
 	)
 	if err != nil {
 		log.Fatal("failed to migrate database: ", err)

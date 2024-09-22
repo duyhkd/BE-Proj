@@ -8,6 +8,6 @@ import (
 
 type Claims struct {
 	Username string    `json:"username"`
-	Expire   time.Time `json: "expire"`
+	Expire   time.Time `json:"expire"`
 	jwt.RegisteredClaims
 }

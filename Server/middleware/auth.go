@@ -3,6 +3,7 @@ package middleware
 import (
 	"Server/httpServer"
 	"Server/service"
+	"context"
 	"net/http"
 	"strings"
 )
@@ -23,15 +24,19 @@ func TokenVerificationMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		token = splitToken[1] // The actual token part
+		tokenstring := splitToken[1] // The actual token part
 
-		// Validate the token (you would implement your token validation logic here)
-		isValid := service.IsTokenValid(token)
+		// isValid := service.IsTokenValid(token)
 
-		if !isValid {
+		parsedToken, claims := service.ParseToken(tokenstring)
+
+		if !parsedToken.Valid {
 			httpServer.Unauthorized(w, "Invalid or expired token")
-			return
 		}
+
+		// Store claims in the context for later use
+		ctx := context.WithValue(r.Context(), "username", claims.Username)
+		r = r.WithContext(ctx)
 
 		// If token is valid, proceed to the next handler
 		next.ServeHTTP(w, r)

@@ -47,7 +47,7 @@ func AddUser(newUser model.User) error {
 	result := db.DB.Where("user_name = ?", newUser.UserName).First(&existingUser)
 
 	if result.Error == nil {
-		// \User already exists
+		// User already exists
 		return result.Error
 	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// Other db error

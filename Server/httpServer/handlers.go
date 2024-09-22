@@ -66,7 +66,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserDetails(w http.ResponseWriter, r *http.Request) {
-	// Need to save session/authenticated state. For now just allow anonymous
 	if r.Method != "GET" {
 		MethodNotAllowed(w)
 	}
@@ -84,7 +83,6 @@ func GetUserDetails(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
-	// Need to save session/authenticated state. For now just allow anonymous
 	if r.Method != "POST" {
 		MethodNotAllowed(w)
 	}
@@ -106,7 +104,6 @@ func UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserProfilePhoto(w http.ResponseWriter, r *http.Request) {
-	// Need to save session/authenticated state. For now just allow anonymous
 	if r.Method != "POST" {
 		MethodNotAllowed(w)
 	}

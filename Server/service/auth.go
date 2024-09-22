@@ -31,17 +31,14 @@ func CreateToken(username string) (string, error) {
 	return tokenString, nil
 }
 
-func IsTokenValid(tokenStr string) bool {
+func ParseToken(tokenStr string) (*jwt.Token, *model.Claims) {
 	claims := &model.Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+	token, _ := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 		// Validate the alg is HMAC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return secretKey, nil
 	})
-	if err != nil {
-		return false
-	}
-	return token.Valid
+	return token, claims
 }
