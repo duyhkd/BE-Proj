@@ -1,3 +1,4 @@
 {
-    "DB_CONNECTION_STRING": "host=localhost user=postgres password=postgres dbname=devdb port=5434 sslmode=disable TimeZone=Asia/Shanghai"
+    "DB_CONNECTION_STRING": "host=localhost user=postgres password=postgres dbname=devdb port=5434 sslmode=disable TimeZone=Asia/Shanghai",
+    "SIGNED_SECRET_KEY": "very-secret-key"
 }

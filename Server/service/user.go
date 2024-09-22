@@ -4,14 +4,10 @@ import (
 	"Server/db"
 	"Server/model"
 	"errors"
-	"os"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
-
-const userStoragePath = "storage/user"
-const usersFilePath = userStoragePath + "/users.json"
 
 func AsCleanedUser(user model.User) model.CleanedUser {
 	return model.CleanedUser{
@@ -37,15 +33,12 @@ func UpdateDetails(username string, cleaneduser model.CleanedUser) (model.Cleane
 		DoUpdates: clause.AssignmentColumns([]string{"display_name", "age", "profile_photo"}),
 	}).Create(&user)
 
-	return cleaneduser, result.Error
+	return AsCleanedUser(user), result.Error
 }
 
 func GetUsers() []model.User {
 	var users []model.User
-	result := db.DB.Find(&users)
-	if result.Error != nil {
-		os.Create(usersFilePath)
-	}
+	db.DB.Find(&users)
 	return users
 }
 
@@ -53,8 +46,8 @@ func AddUser(newUser model.User) error {
 	var existingUser model.User
 	result := db.DB.Where("user_name = ?", newUser.UserName).First(&existingUser)
 
-	if result.Error != nil {
-		// model.User already exists
+	if result.Error == nil {
+		// \User already exists
 		return result.Error
 	} else if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// Other db error

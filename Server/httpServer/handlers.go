@@ -37,10 +37,10 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		Password: password,
 	}
 
-	ok := service.AddUser(newUser)
+	err := service.AddUser(newUser)
 
 	// Existing user not found
-	if ok != nil {
+	if err == nil {
 		Ok(w, fmt.Sprintf("Success fully signed up user: %s", newUser.UserName))
 	} else {
 		BadRequest(w, "User already signed up!")
@@ -60,7 +60,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil || user.Password != password {
 		BadRequest(w, "Credentials doesn't match or user not exist")
 	} else {
-		Ok(w, "Success fully logged in!")
+		token, _ := service.CreateToken(username)
+		Ok(w, token)
 	}
 }
 

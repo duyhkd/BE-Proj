@@ -3,6 +3,7 @@ package main
 import (
 	"Server/db"
 	"Server/httpServer"
+	"Server/middleware"
 	"Server/model"
 	"errors"
 	"fmt"
@@ -20,13 +21,16 @@ func main() {
 
 	db.Init(model.GetAppConfigs().DBConnectionString)
 
-	http.HandleFunc("/", httpServer.GetRoot)
-	http.HandleFunc("/signup", httpServer.SignUp)
-	http.HandleFunc("/users", httpServer.GetUserDetails)
-	http.HandleFunc("/user/updatedetails", httpServer.UpdateUserDetails)
-	http.HandleFunc("/user/updatephoto", httpServer.UpdateUserProfilePhoto)
+	mux := http.NewServeMux()
 
-	err = http.ListenAndServe(":3333", nil)
+	mux.HandleFunc("/", httpServer.GetRoot)
+	mux.HandleFunc("/login", httpServer.Login)
+	mux.HandleFunc("/signup", httpServer.SignUp)
+	mux.Handle("/users", middleware.TokenVerificationMiddleware(http.HandlerFunc(httpServer.GetUserDetails)))
+	mux.Handle("/user/updatedetails", middleware.TokenVerificationMiddleware(http.HandlerFunc(httpServer.UpdateUserDetails)))
+	mux.Handle("/user/updatephoto", middleware.TokenVerificationMiddleware(http.HandlerFunc(httpServer.UpdateUserProfilePhoto)))
+
+	err = http.ListenAndServe(":3333", mux)
 	log.Printf("starting server on port 3333")
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
