@@ -22,3 +22,11 @@ func Ok(w http.ResponseWriter, message string) {
 func StatusInternalServerError(w http.ResponseWriter, message string) {
 	http.Error(w, message, http.StatusInternalServerError)
 }
+
+func Unauthorized(w http.ResponseWriter, message string) {
+	http.Error(w, message, http.StatusUnauthorized)
+}
+
+func NotFound(w http.ResponseWriter, message string) {
+	http.Error(w, message, http.StatusNotFound)
+}
