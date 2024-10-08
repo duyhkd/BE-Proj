@@ -11,6 +11,7 @@ import (
 type AppConfig struct {
 	DBConnectionString string `json:"DB_CONNECTION_STRING"`
 	SignedSecretKey    string `json:"SIGNED_SECRET_KEY"`
+	RedisPassword      string `json:"REDIS_PASSWORD"`
 }
 
 var globalAppConfig AppConfig

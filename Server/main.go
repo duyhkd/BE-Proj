@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 )
 
 func main() {
@@ -22,26 +23,34 @@ func main() {
 	}
 
 	db.Init(model.GetAppConfigs().DBConnectionString)
+	// Redis
+	redisClient := redis.NewClient(&redis.Options{
+		// Container name + port since we are using docker
+		Addr: "localhost:6379",
+	})
+	// redisMiddleware := middleware.NewRedisMiddleware(redisClient.RedisClient)
 
+	// Http Client
 	app := gin.New()
 	router := app.Group("/api")
+	httpHandler := handlers.NewHandler(redisClient)
 
-	router.GET("/ping", handlers.Ping)
+	router.GET("/ping", httpHandler.Ping)
 	// router.GET("/", httpServer.GetRoot)
-	router.POST("/login", handlers.Login)
-	router.POST("/signup", handlers.SignUp)
+	router.POST("/login", httpHandler.Login)
+	router.POST("/signup", httpHandler.SignUp)
 
 	authorized := router.Group("")
 	authorized.Use(middleware.TokenVerificationMiddleware())
-	authorized.GET("/users", handlers.GetUserDetails)
+	authorized.GET("/users", httpHandler.GetUserDetails)
 
-	authorized.PATCH("/user/updatedetails", handlers.UpdateUserDetails)
-	authorized.PATCH("/user/updatephoto", handlers.UpdateUserProfilePhoto)
-	authorized.POST("/post", handlers.MakePost)
-	authorized.POST("/comment", handlers.MakeComment)
-	authorized.POST("/post/remove", handlers.RemovePost)
-	authorized.POST("/post/update", handlers.EditPost)
-	authorized.POST("/post/like", handlers.LikePost)
+	authorized.PATCH("/user/updatedetails", httpHandler.UpdateUserDetails)
+	authorized.PATCH("/user/updatephoto", httpHandler.UpdateUserProfilePhoto)
+	authorized.POST("/post", httpHandler.MakePost)
+	authorized.POST("/comment", httpHandler.MakeComment)
+	authorized.POST("/post/remove", httpHandler.RemovePost)
+	authorized.POST("/post/update", httpHandler.EditPost)
+	authorized.POST("/post/like", httpHandler.LikePost)
 
 	err = app.Run(":3333")
 	// err = http.ListenAndServe(":3333", mux)

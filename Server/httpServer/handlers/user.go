@@ -9,11 +9,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 )
 
-func SignUp(c *gin.Context) {
+func (handler HttpHandler) SignUp(c *gin.Context) {
 	username, _ := c.GetPostForm("username")
 	password, _ := c.GetPostForm("password")
 	if len(username) < 1 {
@@ -40,21 +42,27 @@ func SignUp(c *gin.Context) {
 	}
 }
 
-func Login(c *gin.Context) {
+func (handler HttpHandler) Login(c *gin.Context) {
 	username, _ := c.GetPostForm("username")
 	password, _ := c.GetPostForm("password")
 	user, err := service.GetUser(username)
+	cachedToken := handler.redis.Get(fmt.Sprintf("%sToken", username))
+	if cachedToken.Err() != redis.Nil {
+		httpServer.Ok(c, cachedToken.Val())
+		return
+	}
 
 	// Existing user not found
 	if err != nil || user.Password != password {
 		httpServer.BadRequest(c, "Credentials doesn't match or user not exist")
 	} else {
 		token, _ := service.CreateToken(username)
+		handler.redis.Set(fmt.Sprintf("%sToken", username), token, 180*time.Second)
 		httpServer.Ok(c, token)
 	}
 }
 
-func GetUserDetails(c *gin.Context) {
+func (handler HttpHandler) GetUserDetails(c *gin.Context) {
 	username := c.Query("username")
 	user, err := service.GetUser(username)
 
@@ -68,7 +76,7 @@ func GetUserDetails(c *gin.Context) {
 	}
 }
 
-func UpdateUserDetails(c *gin.Context) {
+func (handler HttpHandler) UpdateUserDetails(c *gin.Context) {
 	username := c.Query("username")
 
 	var updatedUser model.CleanedUser
@@ -85,7 +93,7 @@ func UpdateUserDetails(c *gin.Context) {
 	}
 }
 
-func UpdateUserProfilePhoto(c *gin.Context) {
+func (handler HttpHandler) UpdateUserProfilePhoto(c *gin.Context) {
 	header, err := c.FormFile("photo")
 	if err != nil {
 		httpServer.StatusInternalServerError(c, "Error retrieving file")

@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func MakePost(c *gin.Context) {
+func (handler HttpHandler) MakePost(c *gin.Context) {
 	username := c.Query("username")
 
 	bytedata, err := io.ReadAll(c.Request.Body)
@@ -32,7 +32,7 @@ func MakePost(c *gin.Context) {
 	}
 }
 
-func RemovePost(c *gin.Context) {
+func (handler HttpHandler) RemovePost(c *gin.Context) {
 	username := c.Value("username").(string)
 	postId, _ := uuid.Parse(c.Query("post"))
 
@@ -65,7 +65,7 @@ func RemovePost(c *gin.Context) {
 	httpServer.Ok(c, "Post deleted!")
 }
 
-func EditPost(c *gin.Context) {
+func (handler HttpHandler) EditPost(c *gin.Context) {
 	username := c.Value("username").(string)
 	postId, err := uuid.Parse(c.Query("post"))
 	if err != nil {
@@ -99,7 +99,7 @@ func EditPost(c *gin.Context) {
 	httpServer.Ok(c, "Post updated!")
 }
 
-func MakeComment(c *gin.Context) {
+func (handler HttpHandler) MakeComment(c *gin.Context) {
 	username := c.Value("username").(string)
 	postId, err := uuid.Parse(c.Query("post"))
 	if err != nil {
@@ -126,7 +126,7 @@ func MakeComment(c *gin.Context) {
 	}
 }
 
-func LikePost(c *gin.Context) {
+func (handler HttpHandler) LikePost(c *gin.Context) {
 	username := c.Value("username").(string)
 	postId, err := uuid.Parse(c.Query("post"))
 	if err != nil {

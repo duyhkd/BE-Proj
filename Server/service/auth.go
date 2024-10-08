@@ -11,12 +11,6 @@ import (
 var secretKey = []byte(model.GetAppConfigs().SignedSecretKey)
 
 func CreateToken(username string) (string, error) {
-	// var existingToken model.Token
-	// result := db.DB.Where("user_name = ?", username).Where("expire_at > ?", time.Now()).First(&existingToken)
-	// if result.RowsAffected > 0 {
-	// 	return existingToken.Token, nil
-	// }
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,
