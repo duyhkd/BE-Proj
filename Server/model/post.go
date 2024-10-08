@@ -8,8 +8,8 @@ type Post struct {
 	Id       uuid.UUID `json:"id" gorm:"type:uuid;default:uuid_generate_v4()"`
 	UserName string    `json:"username"`
 	Text     string    `json:"text"`
-	Comments []Comment `json:"comments" gorm:"foreignKey:PostId"`
-	Likes    []Like    `json:"likes" gorm:"foreignKey:PostId"`
+	Comments []Comment `json:"comments" gorm:"foreignKey:PostId;constraint:OnDelete:CASCADE"`
+	Likes    []Like    `json:"likes" gorm:"foreignKey:PostId;constraint:OnDelete:CASCADE"`
 }
 
 type Comment struct {

@@ -5,21 +5,17 @@ import (
 	"Server/httpServer"
 	"Server/model"
 	"io"
-	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-func MakePost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-	}
+func MakePost(c *gin.Context) {
+	username := c.Query("username")
 
-	username := r.URL.Query().Get("username")
-
-	bytedata, err := io.ReadAll(r.Body)
+	bytedata, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		httpServer.BadRequest(w, err.Error())
+		httpServer.BadRequest(c, err.Error())
 	}
 	text := string(bytedata)
 
@@ -30,55 +26,52 @@ func MakePost(w http.ResponseWriter, r *http.Request) {
 	result := db.DB.Create(&post)
 
 	if result.Error != nil {
-		httpServer.BadRequest(w, result.Error.Error())
+		httpServer.BadRequest(c, result.Error.Error())
 	} else {
-		httpServer.Ok(w, "Posted!")
+		httpServer.Ok(c, "Posted!")
 	}
 }
 
-func RemovePost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-	}
-
-	username := r.Context().Value("username").(string)
-	postId, _ := uuid.Parse(r.URL.Query().Get("post"))
+func RemovePost(c *gin.Context) {
+	username := c.Value("username").(string)
+	postId, _ := uuid.Parse(c.Query("post"))
 
 	var post model.Post
 	result := db.DB.First(&post, "id = ?", postId)
 	if result.Error != nil {
-		httpServer.NotFound(w, "Post doesn't exist")
+		httpServer.NotFound(c, "Post doesn't exist")
 	}
 
 	if username != post.UserName {
-		httpServer.Unauthorized(w, "User is not allow to delete this post")
+		httpServer.Unauthorized(c, "User is not allow to delete this post")
 		return
 	}
 
 	if err := db.DB.Where("post_id = ?", postId).Delete(&model.Comment{}).Error; err != nil {
-		httpServer.BadRequest(w, "Failed to delete comments associated with the post")
+		httpServer.BadRequest(c, "Failed to delete comments associated with the post")
+		return
+	}
+
+	if err := db.DB.Where("post_id = ?", postId).Delete(&model.Like{}).Error; err != nil {
+		httpServer.BadRequest(c, "Failed to delete likes associated with the post")
 		return
 	}
 
 	if err := db.DB.Delete(post).Error; err != nil {
-		httpServer.BadRequest(w, "Failed to delete post")
+		httpServer.BadRequest(c, "Failed to delete post")
 		return
 	}
 
-	httpServer.Ok(w, "Post deleted!")
+	httpServer.Ok(c, "Post deleted!")
 }
 
-func EditPost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-	}
+func EditPost(c *gin.Context) {
+	username := c.Value("username").(string)
+	postId, err := uuid.Parse(c.Query("post"))
 
-	username := r.Context().Value("username").(string)
-	postId, _ := uuid.Parse(r.URL.Query().Get("post"))
-
-	bytedata, err := io.ReadAll(r.Body)
+	bytedata, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		httpServer.BadRequest(w, err.Error())
+		httpServer.BadRequest(c, err.Error())
 	}
 	text := string(bytedata)
 
@@ -86,37 +79,33 @@ func EditPost(w http.ResponseWriter, r *http.Request) {
 
 	result := db.DB.First(&post, "id = ?", postId)
 	if result.Error != nil {
-		httpServer.NotFound(w, "Post doesn't exist")
+		httpServer.NotFound(c, "Post doesn't exist")
 	}
 
 	if username != post.UserName {
-		httpServer.Unauthorized(w, "User is not allow to updated this post")
+		httpServer.Unauthorized(c, "User is not allow to updated this post")
 		return
 	}
 
 	post.Text = text
 	if err = db.DB.Save(&post).Error; err != nil {
-		httpServer.BadRequest(w, "Failed to update post")
+		httpServer.BadRequest(c, "Failed to update post")
 		return
 	}
 
-	httpServer.Ok(w, "Post updated!")
+	httpServer.Ok(c, "Post updated!")
 }
 
-func MakeComment(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
+func MakeComment(c *gin.Context) {
+	username := c.Value("username").(string)
+	postId, err := uuid.Parse(c.Query("post"))
+	if err != nil {
+		httpServer.BadRequest(c, err.Error())
 	}
 
-	username := r.Context().Value("username").(string)
-	postId, err := uuid.Parse(r.URL.Query().Get("post"))
+	bytedata, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		httpServer.BadRequest(w, err.Error())
-	}
-
-	bytedata, err := io.ReadAll(r.Body)
-	if err != nil {
-		httpServer.BadRequest(w, err.Error())
+		httpServer.BadRequest(c, err.Error())
 	}
 	text := string(bytedata)
 
@@ -128,29 +117,24 @@ func MakeComment(w http.ResponseWriter, r *http.Request) {
 	result := db.DB.Create(&comment)
 
 	if result.Error != nil {
-		httpServer.BadRequest(w, result.Error.Error())
+		httpServer.BadRequest(c, result.Error.Error())
 	} else {
-		httpServer.Ok(w, "Commented!")
+		httpServer.Ok(c, "Commented!")
 	}
 }
 
-func LikePost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-		return
-	}
-
-	username := r.Context().Value("username").(string)
-	postId, err := uuid.Parse(r.URL.Query().Get("post"))
+func LikePost(c *gin.Context) {
+	username := c.Value("username").(string)
+	postId, err := uuid.Parse(c.Query("post"))
 	if err != nil {
-		httpServer.BadRequest(w, err.Error())
+		httpServer.BadRequest(c, err.Error())
 		return
 	}
 
 	var post model.Post
 	result := db.DB.First(&post, "id = ?", postId)
 	if result.Error != nil {
-		httpServer.NotFound(w, "Post doesn't exist")
+		httpServer.NotFound(c, "Post doesn't exist")
 		return
 	}
 
@@ -159,21 +143,20 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 
 	if result.RowsAffected > 0 {
 		if err = db.DB.Where("post_id = ?", postId).Where("user_name = ?", username).Delete(&like).Error; err != nil {
-			httpServer.BadRequest(w, "Failed to unlike post")
+			httpServer.BadRequest(c, "Failed to unlike post")
 			return
 		}
-		httpServer.Ok(w, "Unliked Post!")
+		httpServer.Ok(c, "Unliked Post!")
 		return
 	} else {
 		if err = db.DB.Create(&model.Like{
 			PostId:   postId,
 			UserName: username,
 		}).Error; err != nil {
-			httpServer.BadRequest(w, "Failed to like post")
+			httpServer.BadRequest(c, "Failed to like post")
 			return
 		}
-		httpServer.Ok(w, "Liked Post!")
+		httpServer.Ok(c, "Liked Post!")
 		return
 	}
-
 }

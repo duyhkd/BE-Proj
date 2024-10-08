@@ -7,24 +7,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/gin-gonic/gin"
 )
 
-func SignUp(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-	}
-
-	username := r.FormValue("username")
-	password := r.FormValue("password")
+func SignUp(c *gin.Context) {
+	username, _ := c.GetPostForm("username")
+	password, _ := c.GetPostForm("password")
 	if len(username) < 1 {
-		httpServer.BadRequest(w, "Username is missing!")
+		httpServer.BadRequest(c, "Username is missing!")
 		return
 	}
 	if len(password) < 8 {
-		httpServer.BadRequest(w, "Password is too weak :D")
+		httpServer.BadRequest(c, "Password is too weak :D")
 		return
 	}
 
@@ -37,119 +34,108 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 
 	// Existing user not found
 	if err == nil {
-		httpServer.Ok(w, fmt.Sprintf("Success fully signed up user: %s", newUser.UserName))
+		httpServer.Ok(c, fmt.Sprintf("Success fully signed up user: %s", newUser.UserName))
 	} else {
-		httpServer.BadRequest(w, "User already signed up!")
+		httpServer.BadRequest(c, "User already signed up!")
 	}
 }
 
-func Login(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-	}
-
-	username := r.FormValue("username")
-	password := r.FormValue("password")
+func Login(c *gin.Context) {
+	username, _ := c.GetPostForm("username")
+	password, _ := c.GetPostForm("password")
 	user, err := service.GetUser(username)
 
 	// Existing user not found
 	if err != nil || user.Password != password {
-		httpServer.BadRequest(w, "Credentials doesn't match or user not exist")
+		httpServer.BadRequest(c, "Credentials doesn't match or user not exist")
 	} else {
 		token, _ := service.CreateToken(username)
-		httpServer.Ok(w, token)
+		httpServer.Ok(c, token)
 	}
 }
 
-func GetUserDetails(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		httpServer.MethodNotAllowed(w)
-	}
-	username := r.URL.Query().Get("username")
+func GetUserDetails(c *gin.Context) {
+	username := c.Query("username")
 	user, err := service.GetUser(username)
 
 	// Existing user not found
 	if err != nil {
-		httpServer.BadRequest(w, "User does not exist")
+		httpServer.BadRequest(c, "User does not exist")
 	} else {
 		cleanedUser := service.AsCleanedUser(user)
 		jsonString, _ := json.Marshal(cleanedUser)
-		httpServer.Ok(w, string(jsonString))
+		httpServer.Ok(c, string(jsonString))
 	}
 }
 
-func UpdateUserDetails(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-	}
-
-	username := r.URL.Query().Get("username")
+func UpdateUserDetails(c *gin.Context) {
+	username := c.Query("username")
 
 	var updatedUser model.CleanedUser
-	json.NewDecoder(r.Body).Decode(&updatedUser)
+	json.NewDecoder(c.Request.Body).Decode(&updatedUser)
 
 	cleanedUser, err := service.UpdateDetails(username, updatedUser)
 
 	// Existing user not found
 	if err != nil {
-		httpServer.BadRequest(w, err.Error())
+		httpServer.BadRequest(c, err.Error())
 	} else {
 		jsonString, _ := json.Marshal(cleanedUser)
-		httpServer.Ok(w, string(jsonString))
+		httpServer.Ok(c, string(jsonString))
 	}
 }
 
-func UpdateUserProfilePhoto(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		httpServer.MethodNotAllowed(w)
-	}
-
-	err := r.ParseMultipartForm(160 << 20) // 10 MB limit
+func UpdateUserProfilePhoto(c *gin.Context) {
+	header, err := c.FormFile("photo")
 	if err != nil {
-		httpServer.StatusInternalServerError(w, "Error parsing form")
+		httpServer.StatusInternalServerError(c, "Error retrieving file")
+		return
+	}
+	header.Open()
+
+	if header.Size > 10485760 {
+		httpServer.StatusInternalServerError(c, "File exceed 10MB")
 		return
 	}
 
-	file, header, err := r.FormFile("photo")
+	file, err := header.Open()
 	if err != nil {
-		httpServer.StatusInternalServerError(w, "Error retrieving file")
-		return
+		defer file.Close()
 	}
-	defer file.Close()
 
 	dir := "storage/userphotos"
 	filePath := filepath.Join(dir, header.Filename)
 	// Ensure the directory exists
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
-		http.Error(w, "Error creating directory", http.StatusInternalServerError)
+		httpServer.StatusInternalServerError(c, "Error creating directory")
 		return
 	}
 
 	// Create or open the file
 	outFile, err := os.Create(filePath)
 	if err != nil {
-		httpServer.StatusInternalServerError(w, "Error creating file")
+		httpServer.StatusInternalServerError(c, "Error creating file")
 		return
 	}
 	defer outFile.Close()
 
 	_, err = io.Copy(outFile, file)
 	if err != nil {
-		httpServer.StatusInternalServerError(w, "Error saving file")
+		httpServer.StatusInternalServerError(c, "Error saving file")
 		return
 	}
 
-	username := r.URL.Query().Get("username")
+	username := c.Query("username")
 
 	cleanedUser := model.CleanedUser{ProfilePhoto: filePath}
 	cleanedUser, err = service.UpdateDetails(username, cleanedUser)
 
 	// Existing user not found
 	if err != nil {
-		httpServer.BadRequest(w, err.Error())
+		httpServer.BadRequest(c, err.Error())
 	} else {
 		jsonString, _ := json.Marshal(cleanedUser)
-		httpServer.Ok(w, string(jsonString))
+		httpServer.Ok(c, string(jsonString))
 	}
 }

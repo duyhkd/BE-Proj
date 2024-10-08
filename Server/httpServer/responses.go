@@ -1,32 +1,31 @@
 package httpServer
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func MethodNotAllowed(w http.ResponseWriter) {
-	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func MethodNotAllowed(c *gin.Context) {
+	c.String(http.StatusMethodNotAllowed, "Method not allowed")
 }
 
-func BadRequest(w http.ResponseWriter, message string) {
-	http.Error(w, message, http.StatusBadRequest)
+func BadRequest(c *gin.Context, message string) {
+	c.String(http.StatusBadRequest, message)
 }
 
-func Ok(w http.ResponseWriter, message string) {
-	w.WriteHeader(http.StatusOK)
-	jsonResp, _ := json.Marshal(message)
-	w.Write(jsonResp)
+func Ok(c *gin.Context, message string) {
+	c.String(http.StatusOK, message)
 }
 
-func StatusInternalServerError(w http.ResponseWriter, message string) {
-	http.Error(w, message, http.StatusInternalServerError)
+func StatusInternalServerError(c *gin.Context, message string) {
+	c.String(http.StatusInternalServerError, message)
 }
 
-func Unauthorized(w http.ResponseWriter, message string) {
-	http.Error(w, message, http.StatusUnauthorized)
+func Unauthorized(c *gin.Context, message string) {
+	c.String(http.StatusUnauthorized, message)
 }
 
-func NotFound(w http.ResponseWriter, message string) {
-	http.Error(w, message, http.StatusNotFound)
+func NotFound(c *gin.Context, message string) {
+	c.String(http.StatusNotFound, message)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"Server/db"
-	"Server/httpServer"
 	"Server/httpServer/handlers"
 	"Server/middleware"
 	"Server/model"
@@ -11,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -22,21 +23,28 @@ func main() {
 
 	db.Init(model.GetAppConfigs().DBConnectionString)
 
-	mux := http.NewServeMux()
+	app := gin.New()
+	router := app.Group("/api")
 
-	mux.HandleFunc("/", httpServer.GetRoot)
-	mux.HandleFunc("/login", handlers.Login)
-	mux.HandleFunc("/signup", handlers.SignUp)
-	mux.Handle("/users", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.GetUserDetails)))
-	mux.Handle("/user/updatedetails", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.UpdateUserDetails)))
-	mux.Handle("/user/updatephoto", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.UpdateUserProfilePhoto)))
-	mux.Handle("/post", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.MakePost)))
-	mux.Handle("/comment", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.MakeComment)))
-	mux.Handle("/post/remove", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.RemovePost)))
-	mux.Handle("/post/update", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.EditPost)))
-	mux.Handle("/post/like", middleware.TokenVerificationMiddleware(http.HandlerFunc(handlers.LikePost)))
+	router.GET("/ping", handlers.Ping)
+	// router.GET("/", httpServer.GetRoot)
+	router.POST("/login", handlers.Login)
+	router.POST("/signup", handlers.SignUp)
 
-	err = http.ListenAndServe(":3333", mux)
+	authorized := router.Group("")
+	authorized.Use(middleware.TokenVerificationMiddleware())
+	authorized.GET("/users", handlers.GetUserDetails)
+
+	authorized.PATCH("/user/updatedetails", handlers.UpdateUserDetails)
+	authorized.PATCH("/user/updatephoto", handlers.UpdateUserProfilePhoto)
+	authorized.POST("/post", handlers.MakePost)
+	authorized.POST("/comment", handlers.MakeComment)
+	authorized.POST("/post/remove", handlers.RemovePost)
+	authorized.POST("/post/update", handlers.EditPost)
+	authorized.POST("/post/like", handlers.LikePost)
+
+	err = app.Run(":3333")
+	// err = http.ListenAndServe(":3333", mux)
 	log.Printf("starting server on port 3333")
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")

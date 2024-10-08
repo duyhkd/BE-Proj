@@ -3,24 +3,24 @@ package middleware
 import (
 	"Server/httpServer"
 	"Server/service"
-	"context"
-	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
-func TokenVerificationMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
+func TokenVerificationMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.Request.Header.Get("Authorization")
 
 		if token == "" {
-			httpServer.Unauthorized(w, "Missing token")
+			httpServer.Unauthorized(c, "Missing token")
 			return
 		}
 
 		// Assuming tokens are in the format "Bearer <token>"
 		splitToken := strings.Split(token, "Bearer ")
 		if len(splitToken) != 2 {
-			httpServer.Unauthorized(w, "Invalid token format")
+			httpServer.Unauthorized(c, "Invalid token format")
 			return
 		}
 
@@ -31,14 +31,15 @@ func TokenVerificationMiddleware(next http.Handler) http.Handler {
 		parsedToken, claims := service.ParseToken(tokenstring)
 
 		if !parsedToken.Valid {
-			httpServer.Unauthorized(w, "Invalid or expired token")
+			httpServer.Unauthorized(c, "Invalid or expired token")
 		}
 
 		// Store claims in the context for later use
-		ctx := context.WithValue(r.Context(), "username", claims.Username)
-		r = r.WithContext(ctx)
+		c.Set("username", claims.Username)
+		// ctx := context.WithValue(c.Request.Context(), "username", claims.Username)
+		// c.Request.WithContext(ctx)
 
 		// If token is valid, proceed to the next handler
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }
