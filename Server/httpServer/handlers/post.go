@@ -68,6 +68,9 @@ func RemovePost(c *gin.Context) {
 func EditPost(c *gin.Context) {
 	username := c.Value("username").(string)
 	postId, err := uuid.Parse(c.Query("post"))
+	if err != nil {
+		httpServer.BadRequest(c, err.Error())
+	}
 
 	bytedata, err := io.ReadAll(c.Request.Body)
 	if err != nil {
