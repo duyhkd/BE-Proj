@@ -34,7 +34,7 @@ func (handler HttpHandler) MakePost(c *gin.Context) {
 
 func (handler HttpHandler) RemovePost(c *gin.Context) {
 	username := c.Value("username").(string)
-	postId, _ := uuid.Parse(c.Query("post"))
+	postId, _ := uuid.Parse(c.Param("postId"))
 
 	var post model.Post
 	result := db.DB.First(&post, "id = ?", postId)
@@ -67,7 +67,7 @@ func (handler HttpHandler) RemovePost(c *gin.Context) {
 
 func (handler HttpHandler) EditPost(c *gin.Context) {
 	username := c.Value("username").(string)
-	postId, err := uuid.Parse(c.Query("post"))
+	postId, err := uuid.Parse(c.Param("postId"))
 	if err != nil {
 		httpServer.BadRequest(c, err.Error())
 	}
@@ -101,7 +101,7 @@ func (handler HttpHandler) EditPost(c *gin.Context) {
 
 func (handler HttpHandler) MakeComment(c *gin.Context) {
 	username := c.Value("username").(string)
-	postId, err := uuid.Parse(c.Query("post"))
+	postId, err := uuid.Parse(c.Param("postId"))
 	if err != nil {
 		httpServer.BadRequest(c, err.Error())
 	}
@@ -128,7 +128,7 @@ func (handler HttpHandler) MakeComment(c *gin.Context) {
 
 func (handler HttpHandler) LikePost(c *gin.Context) {
 	username := c.Value("username").(string)
-	postId, err := uuid.Parse(c.Query("post"))
+	postId, err := uuid.Parse(c.Param("postId"))
 	if err != nil {
 		httpServer.BadRequest(c, err.Error())
 		return

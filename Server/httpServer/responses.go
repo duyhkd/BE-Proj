@@ -18,6 +18,10 @@ func Ok(c *gin.Context, message string) {
 	c.String(http.StatusOK, message)
 }
 
+func TooManyRequests(c *gin.Context) {
+	c.String(http.StatusTooManyRequests, "Too Many request, please try again later!")
+}
+
 func StatusInternalServerError(c *gin.Context, message string) {
 	c.String(http.StatusInternalServerError, message)
 }

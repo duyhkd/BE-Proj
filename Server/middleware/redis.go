@@ -1,22 +1,33 @@
 package middleware
 
 import (
+	"Server/httpServer"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
+	redisrate "github.com/go-redis/redis_rate"
 )
 
 type RedisMiddleware struct {
 	redisClient redis.Client
+	limiter     RedisRateLimiter
+}
+type RedisRateLimiter struct {
+	*redisrate.Limiter
 }
 
+const rateLimitePrefix = "limiter_%v"
+
 func NewRedisMiddleware(
-	redisClient redis.Client,
+	redisClient *redis.Client,
 ) RedisMiddleware {
+	limiter := RedisRateLimiter{redisrate.NewLimiter(redisClient)}
 	return RedisMiddleware{
-		redisClient: redisClient,
+		redisClient: *redisClient,
+		limiter:     limiter,
 	}
 }
 
@@ -49,5 +60,21 @@ func (m RedisMiddleware) VerifyRedisCache() gin.HandlerFunc {
 		c.JSON(http.StatusOK, responseBody)
 		// Abort other chained middlewares since we already get the response here.
 		c.Abort()
+	}
+}
+
+func (m RedisMiddleware) LimitPingRequest() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		username := c.Value("username").(string)
+		key := fmt.Sprintf(rateLimitePrefix, username)
+		_, _, allow := m.limiter.AllowMinute(key, 2)
+		m.redisClient.IncrBy(key, 1)
+		if !allow {
+			// Handle rate limit exceeded error
+			httpServer.TooManyRequests(c)
+			c.Abort()
+		} else {
+			c.Next()
+		}
 	}
 }

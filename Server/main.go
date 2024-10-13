@@ -23,34 +23,36 @@ func main() {
 	}
 
 	db.Init(model.GetAppConfigs().DBConnectionString)
-	// Redis
 	redisClient := redis.NewClient(&redis.Options{
 		// Container name + port since we are using docker
 		Addr: "localhost:6379",
 	})
-	// redisMiddleware := middleware.NewRedisMiddleware(redisClient.RedisClient)
+	redisMiddleware := middleware.NewRedisMiddleware(redisClient)
 
 	// Http Client
 	app := gin.New()
 	router := app.Group("/api")
-	httpHandler := handlers.NewHandler(redisClient)
+	httpHandler := handlers.NewHandler(*redisClient)
 
-	router.GET("/ping", httpHandler.Ping)
 	// router.GET("/", httpServer.GetRoot)
 	router.POST("/login", httpHandler.Login)
-	router.POST("/signup", httpHandler.SignUp)
+	router.POST("/user", httpHandler.SignUp)
+	router.GET("/ping/top", httpHandler.TopPing)
+	router.GET("/ping/count", httpHandler.PingCount)
 
 	authorized := router.Group("")
 	authorized.Use(middleware.TokenVerificationMiddleware())
-	authorized.GET("/users", httpHandler.GetUserDetails)
 
-	authorized.PATCH("/user/updatedetails", httpHandler.UpdateUserDetails)
+	// Move out routing this is messy
+	authorized.GET("/ping", redisMiddleware.LimitPingRequest(), httpHandler.Ping)
+	authorized.GET("/users", httpHandler.GetUserDetails)
+	authorized.PATCH("/users/details", httpHandler.UpdateUserDetails)
 	authorized.PATCH("/user/updatephoto", httpHandler.UpdateUserProfilePhoto)
-	authorized.POST("/post", httpHandler.MakePost)
-	authorized.POST("/comment", httpHandler.MakeComment)
-	authorized.POST("/post/remove", httpHandler.RemovePost)
-	authorized.POST("/post/update", httpHandler.EditPost)
-	authorized.POST("/post/like", httpHandler.LikePost)
+	authorized.POST("/posts", httpHandler.MakePost)
+	authorized.POST("posts/:postId/comment", httpHandler.MakeComment)
+	authorized.DELETE("/posts/:postId", httpHandler.RemovePost)
+	authorized.PUT("/posts/:postId", httpHandler.EditPost)
+	authorized.POST("/posts/:postId/like", httpHandler.LikePost)
 
 	err = app.Run(":3333")
 	// err = http.ListenAndServe(":3333", mux)
